@@ -1,6 +1,5 @@
 #-*- coding: utf-8 -*-
 
-
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
@@ -31,7 +30,7 @@ pre_url = 'https://search.naver.com/search.naver?where=kin&query='
 mid_url = '&kin_sort=0&c_id=&c_name=&sm=tab_opt&sec=0&title=0&answer=0&grade=0&choice=0&nso=so:dd,a:all,p:from'
 end_url = '&ie=utf8'
 
-keyword = "휴대폰"
+keyword = "분신"
 
 '현재 시각 기준 어제의 날짜 받아옴 (검색 기간: 어제 하루)'
 yesterday = datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d');
@@ -51,8 +50,9 @@ base_url = 'https://search.naver.com/search.naver';
 'next_page String으로 선언'
 next_page = "";
 
-'now_page가 없을 때까지 반복'
-while now_page != "":
+'다음 페이지 버튼이 없을 때까지 반복'
+while True:
+	print(now_page);
 	'현재 page에서 resource 획득'
 	res = requests.get(now_page);
 	'resource를 html 문법 용해 parsing'
@@ -69,13 +69,21 @@ while now_page != "":
 		id_list.append(getIdFromUrl((getUrlFromTag(question_list[i].find('a')))));
 
 	'id_list 출력 및 url 출력'
+	'''
 	for i in range(len(id_list)):
 		print(i);
 		print(id_list[i]);
 		print(getUrlFromId(id_list[i]));
+	'''
 
 	'현재 화면에서 다음 페이지 버튼의 url을 획득'
 	next_page = soup.find(class_='paging').find(class_='next');
+
+	'paging 하위 next class가 none이면 반복문 종료'
+	if(str(next_page) == 'None'):
+		print("Roop Finish!");
+		break;
+
 	next_page = base_url + getUrlFromTag(next_page);
 
 	'Roop 위해 now_page를 next_page로 변경'
