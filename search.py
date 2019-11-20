@@ -25,24 +25,25 @@ def getUrlFromId(id_string):
 	url = 'https://kin.naver.com/qna/detail.nhn?dirId=' + dirId + '&docId=' + docId;
 	return url;
 
+'keyword 파일 열어 한 줄 씩 읽어들어 keyword_list에 입력'
+keyword_list = [];
+with open('keyword') as f:
+	read_data = f.readline().split('\n')[0];
+	while read_data <> '':
+		keyword_list.append(read_data);
+		read_data = f.readline().split('\n')[0];
+	f.close();
+
 '네이버 지식인 검색 url 획득 위한 변수'
 pre_url = 'https://search.naver.com/search.naver?where=kin&query='
 mid_url = '&kin_sort=0&c_id=&c_name=&sm=tab_opt&sec=0&title=0&answer=0&grade=0&choice=0&nso=so:dd,a:all,p:from'
 end_url = '&ie=utf8'
 
-keyword = "분신"
-
 '현재 시각 기준 어제의 날짜 받아옴 (검색 기간: 어제 하루)'
 yesterday = datetime.strftime(datetime.now() - timedelta(1), '%Y%m%d');
 
-'네이버 지식인 검색 최종 url'
-full_url = pre_url + keyword + mid_url + yesterday + 'to' + yesterday + end_url;
-
 '현재까지 얻은 dirId, docId 저장하는 list'
 id_list = [];
-
-'현재 검색 창 page url'
-now_page = full_url;
 
 '현재 검색 창 url 획득 위한 변수'
 base_url = 'https://search.naver.com/search.naver';
@@ -50,43 +51,55 @@ base_url = 'https://search.naver.com/search.naver';
 'next_page String으로 선언'
 next_page = "";
 
-'다음 페이지 버튼이 없을 때까지 반복'
-while True:
-	print(now_page);
-	'현재 page에서 resource 획득'
-	res = requests.get(now_page);
-	'resource를 html 문법 용해 parsing'
-	soup = BeautifulSoup(res.content, 'html.parser');
+'keyword_list만큼 반복'
+for i in range(len(keyword_list)):
+	keyword = keyword_list[i];
+	'네이버 지식인 검색 최종 url'
+	full_url = pre_url + keyword + mid_url + yesterday + 'to' + yesterday + end_url;
+	'현재 검색 창 page url'
+	now_page = full_url;
 
-	'게시글 list 들어있는 content 가져옴'
-	content = soup.find(class_='type01');
+	print(keyword + " Roop Start!");
 
-	'게시글 list contet에서 question class들만 list로 뽑아옴'
-	question_list = content.find_all(class_='question');
+	'다음 페이지 버튼이 없을 때까지 반복'
+	while True:
+		print(now_page);
+		'현재 page에서 resource 획득'
+		res = requests.get(now_page);
+		'resource를 html 문법 용해 parsing'
+		soup = BeautifulSoup(res.content, 'html.parser');
 
-	'questin class에서 <a href> tag만 뽑아와 url 획득 후 Id로 변환해 id_list에 추가'
-	for i in range(len(question_list)):
-		id_list.append(getIdFromUrl((getUrlFromTag(question_list[i].find('a')))));
+		'게시글 list 들어있는 content 가져옴'
+		content = soup.find(class_='type01');
 
-	'id_list 출력 및 url 출력'
-	'''
+		'게시글 list contet에서 question class들만 list로 뽑아옴'
+		question_list = content.find_all(class_='question');
+
+		'questin class에서 <a href> tag만 뽑아와 url 획득 후 Id로 변환해 id_list에 추가'
+		id_string = "";
+		for j in range(len(question_list)):
+			id_string = getIdFromUrl((getUrlFromTag(question_list[j].find('a'))));
+			id_list.append(id_string);
+
+		'현재 화면에서 다음 페이지 버튼의 url을 획득'
+		next_page = soup.find(class_='paging').find(class_='next');
+
+		'paging 하위 next class가 none이면 반복문 종료'
+		if(str(next_page) == 'None'):
+			print(keyword + " Roop Finish!\n");
+			break;
+
+		'다음 페이지 url 획득'
+		next_page = base_url + getUrlFromTag(next_page);
+
+		'Roop 위해 now_page를 next_page로 변경'
+		now_page = next_page;
+		'next_page 초기화'
+		next_page = "";
+
+	'id_list 저장'
+	f = open(yesterday + '_keyword' + str(i) + '_id', 'w');
 	for i in range(len(id_list)):
-		print(i);
-		print(id_list[i]);
-		print(getUrlFromId(id_list[i]));
-	'''
+		f.write(id_list[i] + '\n');
+	f.close();
 
-	'현재 화면에서 다음 페이지 버튼의 url을 획득'
-	next_page = soup.find(class_='paging').find(class_='next');
-
-	'paging 하위 next class가 none이면 반복문 종료'
-	if(str(next_page) == 'None'):
-		print("Roop Finish!");
-		break;
-
-	next_page = base_url + getUrlFromTag(next_page);
-
-	'Roop 위해 now_page를 next_page로 변경'
-	now_page = next_page;
-	'next_page 초기화'
-	next_page = "";
